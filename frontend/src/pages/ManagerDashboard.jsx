@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { returnsService } from '../services/returns';
 import {
   Card, StatCard, Table, StatusBadge, PillBadge,
@@ -9,7 +9,7 @@ import { formatDate, getErrorMessage } from '../utils/helpers';
 import {
   Package, Clock, CheckCircle, XCircle, AlertTriangle,
   ChevronRight, Search, Filter, TrendingUp, BarChart3,
-  Shield, FileSearch
+  Shield, FileSearch, Trash2
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -23,6 +23,10 @@ import {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [riskFilter, setRiskFilter] = useState('');
+  
+  const location = useLocation();
+  const isDashboard = location.pathname === '/manager/dashboard';
+  const isAllReturns = location.pathname.includes('/manager/returns');
 
   useEffect(() => {
     const params = {};
@@ -34,6 +38,21 @@ import {
       .catch(e => setError(getErrorMessage(e)))
       .finally(() => setLoading(false));
   }, [statusFilter, riskFilter]);
+
+  const handleDelete = async (id, e) => {
+    e.preventDefault();
+    if (!window.confirm("Are you sure you want to permanently delete this return request?")) return;
+    try {
+      await returnsService.deleteReturn(id);
+      setData(prev => ({
+        ...prev,
+        returns: prev.returns.filter(r => r.id !== id),
+        stats: { ...prev.stats, total: (prev.stats.total || 1) - 1 }
+      }));
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  };
 
   if (loading) return <LoadingScreen message="Loading ML analysis dashboard..." />;
 
@@ -69,8 +88,12 @@ import {
             <Shield className="w-6 h-6 text-indigo-600" />
           </div>
           <div>
-            <h1 className="font-display text-3xl font-bold text-slate-900 tracking-tight">Manager Dashboard</h1>
-            <p className="text-slate-500 text-sm mt-1 font-medium">AI-powered return request analysis & operations</p>
+            <h1 className="font-display text-3xl font-bold text-slate-900 tracking-tight">
+              {isDashboard ? 'Manager Dashboard' : 'All Returns'}
+            </h1>
+            <p className="text-slate-500 text-sm mt-1 font-medium">
+              {isDashboard ? 'AI-powered return request analysis & operations' : 'View and manage customer return requests'}
+            </p>
           </div>
         </div>
       </div>
@@ -78,18 +101,20 @@ import {
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
-        <div className="col-span-2 sm:col-span-4 lg:col-span-1">
-          <StatCard icon={Package} label="Total Requests" value={stats.total || 0} color="brand" sub={`${stats.high_risk || 0} flagged high risk`} />
+      {isDashboard && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div className="col-span-2 sm:col-span-4 lg:col-span-1">
+            <StatCard icon={Package} label="Total Requests" value={stats.total || 0} color="brand" sub={`${stats.high_risk || 0} flagged high risk`} />
+          </div>
+          <StatCard icon={Clock} label="Pending ML" value={stats.pending || 0} color="slate" />
+          <StatCard icon={FileSearch} label="Under Review" value={stats.under_review || 0} color="amber" />
+          <StatCard icon={CheckCircle} label="Accepted" value={stats.accepted || 0} color="green" />
+          <StatCard icon={XCircle} label="Rejected" value={stats.rejected || 0} color="red" />
         </div>
-        <StatCard icon={Clock} label="Pending ML" value={stats.pending || 0} color="slate" />
-        <StatCard icon={FileSearch} label="Under Review" value={stats.under_review || 0} color="amber" />
-        <StatCard icon={CheckCircle} label="Accepted" value={stats.accepted || 0} color="green" />
-        <StatCard icon={XCircle} label="Rejected" value={stats.rejected || 0} color="red" />
-      </div>
+      )}
 
       {/* Charts row */}
-      {returns.length > 0 && (
+      {(isDashboard && returns.length > 0) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card className="p-6 border-slate-200 shadow-sm">
             <div className="flex items-center gap-2 mb-6 border-b border-slate-100 pb-4">
@@ -126,10 +151,11 @@ import {
         </div>
       )}
 
-      {/* Filters */}
-      <Card className="p-4 bg-white/50 backdrop-blur-sm border-slate-200">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
+      {/* Filters (All Returns only) */}
+      {isAllReturns && (
+        <Card className="p-4 bg-white/50 backdrop-blur-sm border-slate-200">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               value={search}
@@ -165,91 +191,103 @@ import {
           </div>
         </div>
       </Card>
+      )}
 
-      {/* Table */}
-      <Card className="shadow-sm">
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white rounded-t-2xl">
-          <h2 className="font-display font-semibold text-slate-900 text-lg">Return Queue</h2>
-          <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200/60">
-            {filtered.length} matches
-          </span>
-        </div>
+      {/* Table (All Returns only) */}
+      {isAllReturns && (
+        <Card className="shadow-sm">
+          <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white rounded-t-2xl">
+            <h2 className="font-display font-semibold text-slate-900 text-lg">Return Queue</h2>
+            <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200/60">
+              {filtered.length} matches
+            </span>
+          </div>
 
-        <Table
-          headers={['ID', 'Customer', 'Order ID', 'Product', 'Cust. Risk', 'Similarity', 'Damage', 'Prediction', 'Status', 'Review']}
-          empty="No return requests match your criteria."
-        >
-          {filtered.length > 0 && filtered.map(r => {
-            const ml = r.ml_analysis || {};
-            const custRiskPcnt = Math.round((ml.customer_risk_score || 0) * 100);
-            const simPcnt = ml.similarity_score !== null ? Math.round(ml.similarity_score * 100) : null;
-            
-            return (
-              <tr key={r.id} className="hover:bg-slate-50/80 transition-colors group cursor-default">
-                <td className="px-6 py-4 text-xs font-mono font-medium text-slate-400">#{r.id}</td>
-                <td className="px-6 py-4">
-                  <p className="text-sm font-bold text-slate-800">{r.customer_name}</p>
-                  <p className="text-xs font-medium text-slate-500">{r.customer_email}</p>
-                </td>
-                <td className="px-6 py-4">
-                  <span className="font-mono text-xs font-semibold text-slate-700 bg-slate-100 border border-slate-200 shadow-sm px-2.5 py-1 rounded-md">
-                    #{r.order_id}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-sm font-semibold text-slate-700 max-w-[150px] truncate" title={r.product_name}>{r.product_name}</td>
-                
-                {/* Customer Risk */}
-                <td className="px-6 py-4 text-center">
-                  {ml.customer_risk_score !== null && ml.customer_risk_score !== undefined ? (
-                    <div className="flex flex-col items-center">
-                      <span className={`text-xs font-mono font-bold ${custRiskPcnt > 75 ? 'text-purple-600' : custRiskPcnt > 50 ? 'text-red-500' : custRiskPcnt > 25 ? 'text-amber-500' : 'text-emerald-500'}`}>
-                        {custRiskPcnt}%
-                      </span>
+          <Table
+            headers={['ID', 'Customer', 'Order ID', 'Product', 'Cust. Risk', 'Similarity', 'Damage', 'Prediction', 'Status', 'Review']}
+            empty="No return requests match your criteria."
+          >
+            {filtered.length > 0 && filtered.map(r => {
+              const ml = r.ml_analysis || {};
+              const custRiskPcnt = Math.round((ml.customer_risk_score || 0) * 100);
+              const simPcnt = ml.similarity_score !== null ? Math.round(ml.similarity_score * 100) : null;
+              
+              return (
+                <tr key={r.id} className="hover:bg-slate-50/80 transition-colors group cursor-default">
+                  <td className="px-6 py-4 text-xs font-mono font-medium text-slate-400">#{r.id}</td>
+                  <td className="px-6 py-4">
+                    <p className="text-sm font-bold text-slate-800">{r.customer_name}</p>
+                    <p className="text-xs font-medium text-slate-500">{r.customer_email}</p>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="font-mono text-xs font-semibold text-slate-700 bg-slate-100 border border-slate-200 shadow-sm px-2.5 py-1 rounded-md">
+                      #{r.order_id}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm font-semibold text-slate-700 max-w-[150px] truncate" title={r.product_name}>{r.product_name}</td>
+                  
+                  {/* Customer Risk */}
+                  <td className="px-6 py-4 text-center">
+                    {ml.customer_risk_score !== null && ml.customer_risk_score !== undefined ? (
+                      <div className="flex flex-col items-center">
+                        <span className={`text-xs font-mono font-bold ${custRiskPcnt > 75 ? 'text-purple-600' : custRiskPcnt > 50 ? 'text-red-500' : custRiskPcnt > 25 ? 'text-amber-500' : 'text-emerald-500'}`}>
+                          {custRiskPcnt}%
+                        </span>
+                      </div>
+                    ) : <span className="text-xs text-slate-400">—</span>}
+                  </td>
+
+                  {/* Similarity */}
+                  <td className="px-6 py-4 text-center">
+                     {simPcnt !== null ? (
+                      <PillBadge 
+                        label={`${simPcnt}%`} 
+                        color={simPcnt > 80 ? 'green' : simPcnt > 50 ? 'amber' : 'red'} 
+                      />
+                    ) : <span className="text-xs text-slate-400">—</span>}
+                  </td>
+
+                  {/* Damage */}
+                  <td className="px-6 py-4 text-center">
+                    {ml.damage_level ? (
+                      <PillBadge 
+                        label={ml.damage_level} 
+                        color={ml.damage_level === 'Severe' ? 'red' : ml.damage_level === 'Minor' ? 'amber' : 'green'} 
+                      />
+                    ) : <span className="text-xs text-slate-400">—</span>}
+                  </td>
+
+                  {/* Prediction */}
+                  <td className="px-6 py-4 text-center">
+                     {ml.similarity_prediction ? (
+                       <span className="text-xs font-semibold text-slate-600">{ml.similarity_prediction.replace('_', ' ')}</span>
+                     ) : <span className="text-xs text-slate-400">—</span>}
+                  </td>
+
+                  <td className="px-6 py-4 text-center"><StatusBadge status={r.status} /></td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Link
+                        to={`/manager/return/${r.id}`}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 shadow-sm px-3 py-1.5 rounded-lg transition-all active:scale-95"
+                      >
+                        Review <ChevronRight className="w-3 h-3" />
+                      </Link>
+                      <button
+                        onClick={(e) => handleDelete(r.id, e)}
+                        className="inline-flex items-center justify-center p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+                        title="Delete Request"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
-                  ) : <span className="text-xs text-slate-400">—</span>}
-                </td>
-
-                {/* Similarity */}
-                <td className="px-6 py-4 text-center">
-                   {simPcnt !== null ? (
-                    <PillBadge 
-                      label={`${simPcnt}%`} 
-                      color={simPcnt > 80 ? 'green' : simPcnt > 50 ? 'amber' : 'red'} 
-                    />
-                  ) : <span className="text-xs text-slate-400">—</span>}
-                </td>
-
-                {/* Damage */}
-                <td className="px-6 py-4 text-center">
-                  {ml.damage_level ? (
-                    <PillBadge 
-                      label={ml.damage_level} 
-                      color={ml.damage_level === 'Severe' ? 'red' : ml.damage_level === 'Minor' ? 'amber' : 'green'} 
-                    />
-                  ) : <span className="text-xs text-slate-400">—</span>}
-                </td>
-
-                {/* Prediction */}
-                <td className="px-6 py-4 text-center">
-                   {ml.similarity_prediction ? (
-                     <span className="text-xs font-semibold text-slate-600">{ml.similarity_prediction.replace('_', ' ')}</span>
-                   ) : <span className="text-xs text-slate-400">—</span>}
-                </td>
-
-                <td className="px-6 py-4 text-center"><StatusBadge status={r.status} /></td>
-                <td className="px-6 py-4 text-right">
-                  <Link
-                    to={`/manager/return/${r.id}`}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 shadow-sm px-3 py-1.5 rounded-lg transition-all active:scale-95"
-                  >
-                    Review <ChevronRight className="w-3 h-3" />
-                  </Link>
-                </td>
-              </tr>
-            );
-          })}
-        </Table>
-      </Card>
+                  </td>
+                </tr>
+              );
+            })}
+          </Table>
+        </Card>
+      )}
     </div>
   );
 }

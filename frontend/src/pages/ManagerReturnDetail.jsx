@@ -9,7 +9,7 @@ import {
   ArrowLeft, User, Package, Calendar, FileText,
   Brain, Image as ImageIcon, CheckCircle, XCircle,
   Clock, AlertTriangle, ExternalLink, ShieldAlert,
-  PlayCircle, RefreshCcw, Box, Upload, Plus
+  PlayCircle, RefreshCcw, Box, Upload, Plus, Trash2
 } from 'lucide-react';
 
 export default function ManagerReturnDetail() {
@@ -71,6 +71,23 @@ export default function ManagerReturnDetail() {
     } finally {
       setUploadingImage(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDeleteShippingImage = async (e, imageId) => {
+    e.stopPropagation();
+    if (!window.confirm("Are you sure you want to remove this baseline image?")) return;
+    
+    setActionLoading(`delete_${imageId}`); setError(''); setActionSuccess('');
+    try {
+      await returnsService.deleteShippingImage(imageId);
+      setActionSuccess('Baseline image removed successfully.');
+      setTimeout(() => setActionSuccess(''), 3000);
+      await fetchData();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setActionLoading('');
     }
   };
 
@@ -223,6 +240,14 @@ export default function ManagerReturnDetail() {
                         <div className="absolute top-2 left-2 bg-indigo-600 text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded shadow-sm">
                           Baseline
                         </div>
+                        <button
+                          onClick={(e) => handleDeleteShippingImage(e, img.id)}
+                          disabled={actionLoading === `delete_${img.id}`}
+                          className="absolute top-2 right-2 bg-red-600/90 hover:bg-red-600 text-white p-1.5 rounded-lg shadow opacity-0 group-hover:opacity-100 transition-opacity z-10 disabled:opacity-50"
+                          title="Remove Image"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                         <div className="absolute inset-0 bg-indigo-900/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                           <ExternalLink className="w-6 h-6 text-white drop-shadow-md" />
                         </div>

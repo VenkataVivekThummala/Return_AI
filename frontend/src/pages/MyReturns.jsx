@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { returnsService } from '../services/returns';
 import { Card, Table, StatusBadge, LoadingScreen, Alert, Button } from '../components/UI';
 import { formatDate, formatReason, getErrorMessage } from '../utils/helpers';
-import { PlusCircle, ChevronRight, Inbox } from 'lucide-react';
+import { PlusCircle, ChevronRight, Inbox, Trash2 } from 'lucide-react';
 
 export default function MyReturns() {
   const [returns, setReturns] = useState([]);
@@ -16,6 +16,17 @@ export default function MyReturns() {
       .catch(e => setError(getErrorMessage(e)))
       .finally(() => setLoading(false));
   }, []);
+
+  const handleDelete = async (id, e) => {
+    e.preventDefault();
+    if (!window.confirm("Are you sure you want to completely remove this return request?")) return;
+    try {
+      await returnsService.deleteReturn(id);
+      setReturns(returns.filter(r => r.id !== id));
+    } catch (e) {
+      setError(getErrorMessage(e));
+    }
+  };
 
   if (loading) return <LoadingScreen />;
 
@@ -60,12 +71,21 @@ export default function MyReturns() {
                 <td className="px-6 py-4"><StatusBadge status={r.status} /></td>
                 <td className="px-6 py-4 text-sm text-slate-500 font-medium">{formatDate(r.created_at)}</td>
                 <td className="px-6 py-4 text-right">
-                  <Link
-                    to={`/customer/return/${r.id}`}
-                    className="inline-flex items-center justify-center p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors group-hover:text-indigo-500"
-                  >
-                    <ChevronRight className="w-5 h-5" />
-                  </Link>
+                  <div className="flex items-center justify-end gap-2">
+                    <Link
+                      to={`/customer/return/${r.id}`}
+                      className="inline-flex items-center justify-center p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors group-hover:text-indigo-500"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </Link>
+                    <button
+                      onClick={(e) => handleDelete(r.id, e)}
+                      className="inline-flex items-center justify-center p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors group-hover:text-red-500"
+                      title="Remove Request"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

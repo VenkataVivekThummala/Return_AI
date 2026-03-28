@@ -9,6 +9,7 @@ export const returnsService = {
 
   myReturns: () => api.get('/my-returns/'),
   getReturn: (id) => api.get(`/return/${id}/`),
+  deleteReturn: (id) => api.delete(`/return/${id}/delete/`),
 
   // Manager
   allReturns: (params) => api.get('/manager/returns/', { params }),
@@ -20,4 +21,5 @@ export const returnsService = {
     api.post(`/manager/return/${id}/upload-shipping-image/`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
+  deleteShippingImage: (imageId) => api.delete(`/manager/shipping-image/${imageId}/`),
 };

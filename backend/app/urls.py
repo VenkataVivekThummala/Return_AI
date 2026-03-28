@@ -13,6 +13,7 @@ urlpatterns = [
     path('create-return/', views.create_return, name='create-return'),
     path('my-returns/', views.my_returns, name='my-returns'),
     path('return/<int:pk>/', views.return_detail, name='return-detail'),
+    path('return/<int:pk>/delete/', views.delete_return, name='delete-return'),
 
     # Manager Returns
     path('manager/returns/', views.all_returns, name='all-returns'),
@@ -23,4 +24,5 @@ urlpatterns = [
     # Dashboard
     path('dashboard/stats/', views.dashboard_stats, name='dashboard-stats'),
     path('manager/return/<int:pk>/upload-shipping-image/', views.upload_shipping_image, name='upload-shipping-image'),
+    path('manager/shipping-image/<int:image_id>/', views.delete_shipping_image, name='delete-shipping-image'),
 ]

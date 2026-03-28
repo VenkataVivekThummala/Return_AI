@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Shield, Eye, EyeOff, Sparkles, ArrowRight, UserCheck, Briefcase } from 'lucide-react';
 import { Alert, Spinner } from '../components/UI';
@@ -158,10 +158,16 @@ export default function LoginPage() {
             <div className="mt-4 pt-4 border-t border-slate-100">
               <button
                 onClick={fillDemo}
-                className="w-full py-2 text-xs font-medium text-slate-400 hover:text-brand-600 transition-colors"
+                className="w-full py-2 text-xs font-medium text-slate-400 hover:text-brand-600 transition-colors mb-2"
               >
                 Fill demo credentials →
               </button>
+              <div className="text-center text-xs text-slate-500">
+                Don't have an account?{' '}
+                <Link to="/register" className="text-brand-600 font-semibold hover:underline">
+                  Sign up
+                </Link>
+              </div>
             </div>
           </div>
         </div>

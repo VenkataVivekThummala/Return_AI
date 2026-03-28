@@ -247,3 +247,31 @@ def upload_shipping_image(request, pk):
     )
     
     return Response(ManagerReturnRequestDetailSerializer(return_request, context={'request': request}).data)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_shipping_image(request, image_id):
+    if request.user.role != 'manager':
+        return Response({'error': 'Only managers can delete shipping baseline images'},
+                        status=status.HTTP_403_FORBIDDEN)
+
+    shipping_image = get_object_or_404(ShippingImages, pk=image_id)
+    shipping_image.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_return(request, pk):
+    return_request = get_object_or_404(ReturnRequest, pk=pk)
+    
+    # Check permissions
+    if request.user.role == 'customer':
+        if return_request.customer != request.user:
+            return Response({'error': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
+    elif request.user.role == 'manager':
+        pass # Managers can delete any request
+    else:
+        return Response({'error': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
+        
+    return_request.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
