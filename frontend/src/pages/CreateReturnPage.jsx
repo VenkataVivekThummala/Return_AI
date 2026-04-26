@@ -42,6 +42,7 @@ export default function CreateReturnPage() {
     if (!form.return_reason) e.return_reason = 'Please select a reason';
     if (!form.description.trim()) e.description = 'Description is required';
     else if (form.description.trim().length < 10) e.description = 'Please provide more detail (min 10 chars)';
+    if (images.length === 0) e.images = 'At least one image is required';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -196,7 +197,7 @@ export default function CreateReturnPage() {
           </FormField>
 
           {/* Image Upload */}
-          <FormField label="Product Images" hint={`Upload up to 5 images. ${images.length}/5 uploaded.`}>
+          <FormField label="Product Images" error={errors.images} required hint={`Upload up to 5 images. ${images.length}/5 uploaded.`}>
             <div
               onDragOver={e => { e.preventDefault(); setDragOver(true); }}
               onDragLeave={() => setDragOver(false)}

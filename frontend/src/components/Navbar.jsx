@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Shield, LogOut, Menu, X, LayoutDashboard, PlusCircle, ClipboardList } from 'lucide-react';
+import logoImage from '../assets/logo.jpeg';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -20,7 +21,12 @@ export default function Navbar() {
     { to: '/manager/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/manager/returns', icon: ClipboardList, label: 'All Returns' },
   ];
-  const links = user?.role === 'manager' ? managerLinks : customerLinks;
+  const deliveryLinks = [
+    { to: '/delivery/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  ];
+  let links = customerLinks;
+  if (user?.role === 'manager') links = managerLinks;
+  else if (user?.role === 'delivery') links = deliveryLinks;
 
   return (
     <nav className="bg-white border-b border-slate-200 sticky top-0 z-40">
@@ -28,9 +34,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-14">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-7 h-7 bg-brand-600 rounded-lg flex items-center justify-center shadow-sm group-hover:bg-brand-700 transition-colors">
-              <Shield className="w-4 h-4 text-white" />
-            </div>
+            <img src={logoImage} alt="ReturnAI Logo" className="h-8 object-contain drop-shadow-sm group-hover:scale-105 transition-transform" />
             <span className="font-display font-bold text-slate-900 text-sm tracking-tight hidden sm:block">
               ReturnAI
             </span>

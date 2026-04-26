@@ -68,7 +68,16 @@ export default function MyReturns() {
                   {r.product_name}
                 </td>
                 <td className="px-6 py-4 text-sm font-medium text-slate-500">{formatReason(r.return_reason)}</td>
-                <td className="px-6 py-4"><StatusBadge status={r.status} /></td>
+                <td className="px-6 py-4">
+                  <div className="flex flex-col gap-1.5 items-start">
+                    <StatusBadge status={r.status} />
+                    {r.pickup_details?.status === 'failed' && (
+                        <span className="text-[10px] font-bold tracking-wide text-red-700 bg-red-100 px-2 py-0.5 rounded-full shadow-sm border border-red-200" title={r.pickup_details.failure_reason}>
+                          PICKUP FAILED
+                        </span>
+                    )}
+                  </div>
+                </td>
                 <td className="px-6 py-4 text-sm text-slate-500 font-medium">{formatDate(r.created_at)}</td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex items-center justify-end gap-2">

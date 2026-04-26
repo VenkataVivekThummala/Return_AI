@@ -14,8 +14,11 @@ from datetime import date, datetime
 from typing import Dict, List, Tuple, Optional
 import random
 import math
-
-
+import os
+try:
+    import joblib
+except ImportError:
+    joblib = None
 # ─────────────────────────────────────────────
 # Feature Extraction
 # ─────────────────────────────────────────────
@@ -142,14 +145,34 @@ class IsolationForestSimulator:
 class FraudClassifier:
     """
     Simulates a Random Forest trained on labeled fraud/legitimate return data.
-    Uses feature weights derived from domain knowledge.
+    Uses feature weights derived from domain knowledge, or loads a real
+    trained scikit-learn model if available in ml_models directory.
     """
     # Learned feature weights (simulating a trained model)
     FEATURE_WEIGHTS = np.array([0.15, 0.25, 0.20, 0.22, 0.08, 0.05, 0.05])
     BIAS = 0.05
+    
+    def __init__(self):
+        self.real_model = None
+        if joblib is not None:
+            # Try to load the real model trained by train_behavior_model.py
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            model_path = os.path.join(base_dir, 'ml_models', 'behavior_rf_model.joblib')
+            if os.path.exists(model_path):
+                try:
+                    self.real_model = joblib.load(model_path)
+                    print(f"Loaded REAL Random Forest model from {model_path}")
+                except Exception as e:
+                    print(f"Failed to load real model, falling back to simulation: {e}")
 
     def predict_proba(self, features: np.ndarray) -> float:
         """Return fraud probability between 0 and 1."""
+        if self.real_model is not None:
+            # Use real scikit-learn model (features needs to be 2D array: [1, n_features])
+            proba = self.real_model.predict_proba(features.reshape(1, -1))
+            return float(proba[0][1])  # Return probability of class 1 (is_fraud)
+            
+        # --- Fallback: Simulated output --- #
         linear = np.dot(features, self.FEATURE_WEIGHTS) + self.BIAS
         # Sigmoid activation
         prob = 1.0 / (1.0 + math.exp(-5 * (linear - 0.5)))

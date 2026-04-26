@@ -7,7 +7,7 @@ import {
 import { formatDate, formatReason, getErrorMessage } from '../utils/helpers';
 import {
   ArrowLeft, Package, FileText,
-  Image as ImageIcon, ExternalLink,
+  Image as ImageIcon, ExternalLink, AlertTriangle
 } from 'lucide-react';
 
 export default function CustomerReturnStatus() {
@@ -46,6 +46,21 @@ export default function CustomerReturnStatus() {
         </div>
         <StatusBadge status={data.status} />
       </div>
+
+      {data.pickup_details?.status === 'failed' && (
+         <div className="bg-red-50 border border-red-200 p-4 rounded-xl flex items-start gap-3 shadow-sm animate-fade-in">
+            <div className="p-2 bg-red-100 text-red-600 rounded-lg shrink-0">
+               <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+               <h3 className="text-red-800 font-bold mb-1">Return Pickup Unsuccessful</h3>
+               <p className="text-sm text-red-700 leading-relaxed">
+                 Our delivery agent was unable to complete the pickup for this return. <br/>
+                 <span className="font-semibold block mt-1">Agent Note: {data.pickup_details.failure_reason}</span>
+               </p>
+            </div>
+         </div>
+      )}
 
       {/* Product Info */}
       <Card className="p-6">

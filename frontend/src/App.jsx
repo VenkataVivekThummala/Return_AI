@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 
+import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import CustomerDashboard from './pages/CustomerDashboard';
@@ -12,6 +13,10 @@ import MyReturns from './pages/MyReturns';
 import CustomerReturnStatus from './pages/CustomerReturnStatus';
 import ManagerDashboard from './pages/ManagerDashboard';
 import ManagerReturnDetail from './pages/ManagerReturnDetail';
+
+import DeliveryLogin from './pages/DeliveryLogin';
+import DeliveryDashboard from './pages/DeliveryDashboard';
+import DeliveryPickupDetail from './pages/DeliveryPickupDetail';
 
 function Layout({ children }) {
   return (
@@ -29,7 +34,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/" element={<LandingPage />} />
 
           {/* Customer Routes */}
           <Route
@@ -87,6 +92,24 @@ export default function App() {
             element={
               <ProtectedRoute role="manager">
                 <Layout><ManagerReturnDetail /></Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route path="/delivery/login" element={<DeliveryLogin />} />
+          <Route
+            path="/delivery/dashboard"
+            element={
+              <ProtectedRoute role="delivery">
+                <Layout><DeliveryDashboard /></Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/delivery/return/:id"
+            element={
+              <ProtectedRoute role="delivery">
+                <Layout><DeliveryPickupDetail /></Layout>
               </ProtectedRoute>
             }
           />

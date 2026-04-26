@@ -264,7 +264,26 @@ import {
                      ) : <span className="text-xs text-slate-400">—</span>}
                   </td>
 
-                  <td className="px-6 py-4 text-center"><StatusBadge status={r.status} /></td>
+                  <td className="px-6 py-4 text-center">
+                    <div className="flex flex-col items-center justify-center gap-1.5">
+                      <StatusBadge status={r.status} />
+                      {r.pickup_status === 'failed' && (
+                        <span className="text-[10px] font-bold tracking-wide text-red-700 bg-red-100 px-2 py-0.5 rounded-full shadow-sm border border-red-200" title={r.pickup_failure_reason}>
+                          PICKUP FAILED
+                        </span>
+                      )}
+                      {r.pickup_status === 'picked' && (
+                        <span className="text-[10px] font-bold tracking-wide text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full shadow-sm border border-emerald-200">
+                          PICKED UP
+                        </span>
+                      )}
+                      {r.pickup_status === 'accepted' && (
+                        <span className="text-[10px] font-bold tracking-wide text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full shadow-sm border border-blue-200">
+                          AGENT DISPATCHED
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <Link

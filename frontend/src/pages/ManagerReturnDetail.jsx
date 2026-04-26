@@ -129,6 +129,21 @@ export default function ManagerReturnDetail() {
         </div>
         <div className="flex items-center gap-3">
            <StatusBadge status={data.status} />
+           {data.pickup_details?.status === 'failed' && (
+             <div className="flex items-center gap-1.5 px-3 py-1 bg-red-100 text-red-700 font-bold rounded-full text-xs border border-red-200 shadow-sm animate-pulse">
+               <AlertTriangle className="w-3.5 h-3.5" /> Pickup Failed: {data.pickup_details.failure_reason}
+             </div>
+           )}
+           {data.pickup_details?.status === 'picked' && (
+             <div className="flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-700 font-bold rounded-full text-xs border border-green-200 shadow-sm">
+               <CheckCircle className="w-3.5 h-3.5" /> Picked Up
+             </div>
+           )}
+           {data.pickup_details?.status === 'accepted' && (
+             <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-100 text-blue-700 font-bold rounded-full text-xs border border-blue-200 shadow-sm">
+               <Package className="w-3.5 h-3.5" /> Agent Dispatched
+             </div>
+           )}
         </div>
       </div>
 
@@ -300,15 +315,16 @@ export default function ManagerReturnDetail() {
                 Execute ML Pipeline
               </Button>
             ) : (
-              <Button 
-                variant="secondary" 
+              <button 
                 onClick={handleRunMl} 
-                loading={runMlLoading} 
-                icon={RefreshCcw}
-                className="bg-slate-800 hover:bg-slate-700 text-white border-slate-700 hover:border-slate-600"
+                disabled={runMlLoading} 
+                className="group flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 hover:border-slate-600 rounded-xl h-10 px-3 transition-all duration-300 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-1"
               >
-                Re-Run Analysis
-              </Button>
+                {runMlLoading ? <RefreshCcw className="w-4 h-4 animate-spin flex-shrink-0" /> : <RefreshCcw className="w-4 h-4 flex-shrink-0" />}
+                <span className="max-w-0 overflow-hidden whitespace-nowrap opacity-0 group-hover:max-w-[100px] group-hover:opacity-100 group-hover:ml-2 transition-all duration-300 ease-in-out font-medium text-sm">
+                  Re-run
+                </span>
+              </button>
             )}
           </div>
         </div>

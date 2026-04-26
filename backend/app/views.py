@@ -6,12 +6,12 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import User, ReturnRequest, ReturnImage, ShippingImages, MLAnalysis, CustomerBehavior
+from .models import User, ReturnRequest, ReturnImage, ShippingImages, MLAnalysis, CustomerBehavior, PickupRequest
 from .serializers import (
     UserRegisterSerializer, UserSerializer,
     CustomerReturnRequestSerializer, CustomerCreateReturnSerializer,
     ManagerReturnRequestListSerializer, ManagerReturnRequestDetailSerializer,
-    ManagerUpdateStatusSerializer,
+    ManagerUpdateStatusSerializer, PickupRequestSerializer
 )
 import sys
 import os
@@ -275,3 +275,70 @@ def delete_return(request, pk):
         
     return_request.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+# ─────────────────────────────────────────────
+# Delivery Boy Views
+# ─────────────────────────────────────────────
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def delivery_login(request):
+    delivery_id = request.data.get('delivery_id', '').strip()
+    password = request.data.get('password', '')
+
+    try:
+        user = User.objects.get(delivery_id=delivery_id)
+    except User.DoesNotExist:
+        return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    if not user.check_password(password) or user.role != 'delivery':
+        return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    if not user.is_active:
+        return Response({'error': 'Account is disabled'}, status=status.HTTP_403_FORBIDDEN)
+
+    refresh = RefreshToken.for_user(user)
+    return Response({
+        'user': UserSerializer(user).data,
+        'access': str(refresh.access_token),
+        'refresh': str(refresh),
+    })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def delivery_pickups(request):
+    if request.user.role != 'delivery':
+        return Response({'error': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
+
+    queryset = PickupRequest.objects.filter(assigned_delivery_boy=request.user)
+    # They should only see pickups where the manager approved the return.
+    # The return_request.status must be 'accepted'
+    queryset = queryset.filter(return_request__status='accepted')
+
+    serializer = PickupRequestSerializer(queryset, many=True, context={'request': request})
+    return Response(serializer.data)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def update_pickup_status(request, pk):
+    if request.user.role != 'delivery':
+        return Response({'error': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
+
+    pickup = get_object_or_404(PickupRequest, pk=pk, assigned_delivery_boy=request.user)
+    
+    new_status = request.data.get('status')
+    failure_reason = request.data.get('failure_reason', '')
+
+    if new_status not in dict(PickupRequest.STATUS_CHOICES):
+        return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
+
+    pickup.pickup_status = new_status
+    if new_status == 'failed':
+        pickup.failure_reason = failure_reason
+        
+    pickup.save()
+    
+    # If pickup is successful, we might want to update the ReturnRequest status too or notify manager.
+    # For now, just update the pickup.
+
+    return Response(PickupRequestSerializer(pickup, context={'request': request}).data)

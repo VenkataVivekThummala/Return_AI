@@ -77,8 +77,19 @@ class CustomerReturnRequestSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'order_id', 'product_name', 'delivery_date',
             'return_reason', 'description', 'status', 'created_at',
-            'images',
+            'images', 'pickup_details',
         ]
+
+    pickup_details = serializers.SerializerMethodField()
+
+    def get_pickup_details(self, obj):
+        if hasattr(obj, 'pickup'):
+            return {
+                'status': obj.pickup.pickup_status,
+                'failure_reason': obj.pickup.failure_reason,
+                'agent_name': obj.pickup.assigned_delivery_boy.name if obj.pickup.assigned_delivery_boy else None
+            }
+        return None
 
 
 class CustomerCreateReturnSerializer(serializers.ModelSerializer):
@@ -108,8 +119,21 @@ class ManagerReturnRequestListSerializer(serializers.ModelSerializer):
         model = ReturnRequest
         fields = [
             'id', 'customer_name', 'customer_email', 'order_id', 'product_name',
-            'status', 'created_at', 'images', 'shipping_images', 'ml_analysis'
+            'status', 'created_at', 'images', 'shipping_images', 'ml_analysis', 'pickup_status', 'pickup_failure_reason'
         ]
+
+    pickup_status = serializers.SerializerMethodField()
+    pickup_failure_reason = serializers.SerializerMethodField()
+
+    def get_pickup_status(self, obj):
+        if hasattr(obj, 'pickup'):
+            return obj.pickup.pickup_status
+        return None
+
+    def get_pickup_failure_reason(self, obj):
+        if hasattr(obj, 'pickup'):
+            return obj.pickup.failure_reason
+        return None
 
     def get_shipping_images(self, obj):
         shipping = ShippingImages.objects.filter(order_id=obj.order_id)
@@ -122,13 +146,14 @@ class ManagerReturnRequestDetailSerializer(serializers.ModelSerializer):
     shipping_images = serializers.SerializerMethodField()
     ml_analysis = MLAnalysisSerializer(read_only=True)
     customer_behavior = serializers.SerializerMethodField()
+    pickup_details = serializers.SerializerMethodField()
 
     class Meta:
         model = ReturnRequest
         fields = [
             'id', 'customer', 'order_id', 'product_name', 'delivery_date',
             'return_reason', 'description', 'status',
-            'images', 'shipping_images', 'ml_analysis', 'customer_behavior',
+            'images', 'shipping_images', 'ml_analysis', 'customer_behavior', 'pickup_details',
             'created_at', 'updated_at', 'reviewed_at'
         ]
 
@@ -139,6 +164,15 @@ class ManagerReturnRequestDetailSerializer(serializers.ModelSerializer):
     def get_customer_behavior(self, obj):
         if hasattr(obj.customer, 'behavior'):
             return CustomerBehaviorSerializer(obj.customer.behavior).data
+        return None
+
+    def get_pickup_details(self, obj):
+        if hasattr(obj, 'pickup'):
+            return {
+                'status': obj.pickup.pickup_status,
+                'failure_reason': obj.pickup.failure_reason,
+                'agent_name': obj.pickup.assigned_delivery_boy.name if obj.pickup.assigned_delivery_boy else None
+            }
         return None
 
 
@@ -152,3 +186,47 @@ class ManagerUpdateStatusSerializer(serializers.ModelSerializer):
         if value not in allowed:
             raise serializers.ValidationError(f"Status must be one of: {allowed}")
         return value
+
+# ---------------------------------------------------------
+# DELIVERY BOY FACING SERIALIZERS
+# ---------------------------------------------------------
+
+from .models import PickupRequest
+
+class PickupRequestSerializer(serializers.ModelSerializer):
+    order_id = serializers.CharField(source='return_request.order_id', read_only=True)
+    customer_name = serializers.CharField(source='return_request.customer.name', read_only=True)
+    customer_address = serializers.SerializerMethodField()
+    product_name = serializers.CharField(source='return_request.product_name', read_only=True)
+    return_reason = serializers.CharField(source='return_request.return_reason', read_only=True)
+    manager_status = serializers.CharField(source='return_request.status', read_only=True)
+    customer_uploaded_images = serializers.SerializerMethodField()
+    system_reference_images = serializers.SerializerMethodField()
+    pickup_image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PickupRequest
+        fields = [
+            'id', 'order_id', 'customer_name', 'customer_address', 'product_name', 
+            'return_reason', 'manager_status', 'pickup_status', 'failure_reason',
+            'customer_uploaded_images', 'system_reference_images', 'pickup_image_url',
+            'assigned_at', 'updated_at'
+        ]
+
+    def get_customer_address(self, obj):
+        # We don't have an address field yet, so we return a dummy address
+        return f"123 Main St, Springfield, IL (Customer #{obj.return_request.customer.id})"
+        
+    def get_customer_uploaded_images(self, obj):
+        images = ReturnImage.objects.filter(return_request=obj.return_request)
+        return ReturnImageSerializer(images, many=True, context=self.context).data
+        
+    def get_system_reference_images(self, obj):
+        images = ShippingImages.objects.filter(order_id=obj.return_request.order_id)
+        return ShippingImageSerializer(images, many=True, context=self.context).data
+        
+    def get_pickup_image_url(self, obj):
+        request = self.context.get('request')
+        if request and obj.pickup_image:
+            return request.build_absolute_uri(obj.pickup_image.url)
+        return None

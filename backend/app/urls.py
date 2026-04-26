@@ -25,4 +25,9 @@ urlpatterns = [
     path('dashboard/stats/', views.dashboard_stats, name='dashboard-stats'),
     path('manager/return/<int:pk>/upload-shipping-image/', views.upload_shipping_image, name='upload-shipping-image'),
     path('manager/shipping-image/<int:image_id>/', views.delete_shipping_image, name='delete-shipping-image'),
+
+    # Delivery Boy
+    path('delivery/login/', views.delivery_login, name='delivery-login'),
+    path('delivery/pickups/', views.delivery_pickups, name='delivery-pickups'),
+    path('delivery/update-status/<int:pk>/', views.update_pickup_status, name='update-pickup-status'),
 ]

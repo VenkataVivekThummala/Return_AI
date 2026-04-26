@@ -33,21 +33,28 @@ def process_return_ml(return_request):
     sim_score, sim_prediction = compare_images(customer_upload.image.path, [x.path for x in shipping_image_paths])
     
     # 2. Damage Detection
-    damage_prob, damage_level = detect_damage(customer_upload.image.path)
+    damage_prob, damage_level = detect_damage(customer_upload.image.path, [x.path for x in shipping_image_paths])
     
     # 3. Customer Behavior Analysis
-    customer_risk_score = 0.0
-    if hasattr(return_request.customer, 'behavior'):
-        behavior = return_request.customer.behavior
-        customer_risk_score = calculate_customer_risk(
-            total_orders=behavior.total_orders,
-            total_returns=behavior.total_returns,
-            return_ratio=behavior.return_ratio,
-            previous_rejections=behavior.previous_rejections
-        )
-        # Update behavior stats with this new return
+    from app.models import CustomerBehavior
+    behavior, _ = CustomerBehavior.objects.get_or_create(customer=return_request.customer)
+    
+    # Verify if this is a first-time run or a re-run
+    is_first_run = not MLAnalysis.objects.filter(return_request=return_request).exists()
+    
+    # Only increment lifetime stats if this is a newly logged return analysis
+    if is_first_run:
         behavior.total_returns += 1
         behavior.return_ratio = behavior.total_returns / max(behavior.total_orders, 1)
+    
+    customer_risk_score = calculate_customer_risk(
+        total_orders=behavior.total_orders,
+        total_returns=behavior.total_returns,
+        return_ratio=behavior.return_ratio,
+        previous_rejections=behavior.previous_rejections
+    )
+    
+    if is_first_run:
         behavior.risk_score = customer_risk_score
         behavior.save()
         
@@ -63,8 +70,8 @@ def process_return_ml(return_request):
             'customer_risk_score': customer_risk_score,
             'model_used': {
                 'similarity': 'ResNet50',
-                'damage': 'YOLOv8',
-                'behavior': 'RandomForest'
+                'damage': 'ResNet18',
+                'behavior': 'RandomForestRegressor'
             }
         }
     )

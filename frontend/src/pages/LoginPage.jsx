@@ -17,16 +17,6 @@ export default function LoginPage() {
 
   if (user) return <Navigate to={user.role === 'manager' ? '/manager/dashboard' : '/customer/dashboard'} replace />;
 
-  const demoAccounts = {
-    customer: { email: 'customer@demo.com', password: 'demo123' },
-    manager: { email: 'manager@demo.com', password: 'demo123' },
-  };
-
-  const fillDemo = () => {
-    setForm(demoAccounts[tab]);
-    setError('');
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.email || !form.password) { setError('Please fill all fields.'); return; }
@@ -154,18 +144,17 @@ export default function LoginPage() {
               </button>
             </form>
 
-            {/* Demo fill */}
-            <div className="mt-4 pt-4 border-t border-slate-100">
-              <button
-                onClick={fillDemo}
-                className="w-full py-2 text-xs font-medium text-slate-400 hover:text-brand-600 transition-colors mb-2"
-              >
-                Fill demo credentials →
-              </button>
+            <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
               <div className="text-center text-xs text-slate-500">
                 Don't have an account?{' '}
                 <Link to="/register" className="text-brand-600 font-semibold hover:underline">
                   Sign up
+                </Link>
+              </div>
+              <div className="text-center text-xs text-slate-500 bg-slate-50 py-2 rounded-lg border border-slate-100">
+                Delivery Agent?{' '}
+                <Link to="/delivery/login" className="text-brand-600 font-semibold hover:underline flex items-center justify-center gap-1 mt-1">
+                  <Briefcase className="w-3 h-3" /> Go to Delivery Portal
                 </Link>
               </div>
             </div>

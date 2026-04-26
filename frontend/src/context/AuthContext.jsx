@@ -30,6 +30,16 @@ export const AuthProvider = ({ children }) => {
     return user;
   }, []);
 
+  const deliveryLoginContext = useCallback(async (delivery_id, password) => {
+    const res = await api.post('/delivery/login/', { delivery_id, password });
+    const { user, access, refresh } = res.data;
+    localStorage.setItem('access_token', access);
+    localStorage.setItem('refresh_token', refresh);
+    api.defaults.headers.common['Authorization'] = `Bearer ${access}`;
+    setUser(user);
+    return user;
+  }, []);
+
   const register = useCallback(async (name, email, password, role) => {
     const res = await api.post('/register/', { name, email, password, role });
     const { user, access, refresh } = res.data;
@@ -47,7 +57,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, deliveryLoginContext, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

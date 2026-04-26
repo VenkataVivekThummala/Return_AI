@@ -24,10 +24,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     ROLE_CHOICES = [
         ('customer', 'Customer'),
         ('manager', 'Return Manager'),
+        ('delivery', 'Delivery Boy'),
     ]
     name = models.CharField(max_length=255)
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='customer')
+    delivery_id = models.CharField(max_length=50, unique=True, null=True, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -116,3 +118,24 @@ class CustomerBehavior(models.Model):
 
     def __str__(self):
         return f"Behavior Stats for {self.customer.email}"
+
+
+class PickupRequest(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('picked', 'Picked'),
+        ('failed', 'Failed'),
+    ]
+
+    return_request = models.OneToOneField('ReturnRequest', on_delete=models.CASCADE, related_name='pickup')
+    assigned_delivery_boy = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_pickups')
+    pickup_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    pickup_image = models.ImageField(upload_to='pickup_images/', null=True, blank=True)
+    failure_reason = models.TextField(null=True, blank=True)
+    
+    assigned_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Pickup for Return #{self.return_request.id} ({self.pickup_status})"
